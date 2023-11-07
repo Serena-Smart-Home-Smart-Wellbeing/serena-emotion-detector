@@ -1,0 +1,7 @@
+README.md
+setup.py
+emotion_detector_module.egg-info/PKG-INFO
+emotion_detector_module.egg-info/SOURCES.txt
+emotion_detector_module.egg-info/dependency_links.txt
+emotion_detector_module.egg-info/top_level.txt
+trainer/__init__.py
