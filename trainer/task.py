@@ -5,10 +5,9 @@
 
 # When using GCS buckets, use "/gcs" instead of "gs://"
 
-# In[8]:
+# In[10]:
 
 
-meow = "/gcs"
 dataset_path = "/gcs/serena-shsw-datasets"
 training_dataset = dataset_path + "/FER-2013/train"
 test_dataset = dataset_path + "/FER-2013/test"
