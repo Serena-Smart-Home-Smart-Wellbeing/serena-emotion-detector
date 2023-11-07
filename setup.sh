@@ -1,4 +1,5 @@
 jupyter nbconvert ./trainer/task.ipynb --to python
+sed -i 's/~\/gcs/\/gcs/g' ./trainer/task.py
 
 python setup.py sdist --formats=gztar
 
