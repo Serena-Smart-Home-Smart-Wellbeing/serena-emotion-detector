@@ -15,7 +15,7 @@
 14. Click continue on "Hyperparameters" menu
 15. For "Compute and pricing", set region to "asia-southeast2 (Jakarta)"
 16. For "Machine type" it depends on the hyperparameters your keras model uses (i.e. batch_size, steps_per_epoch, epochs, etc.). From testing, machine type "n1-highcpu-32" can handle batch_size = 128 and probably more. So far, the best combo seems to be batch_size=128 + n1-highcpu-32 which resulted in training time of 3h36m and accuracy of 0.41. The more batch_size, the faster training will be, but the more vCPUs & memories you will need and it could reduce accuracy due to overfitting. This is a trial and error process since you need to adjust your hyperaparameters based on your dataset samples & epochs. But the default quota for vCPUs in asia-southeast2 is 42, so you should only be able to set machine type with 32 vCPUs as your strongest vm. Adding GPU accelerators could improve speed, but you need to request quota for it.
-17. Set "Disk type" to SSD & 50GB disk size
+17. Set "Disk type" to SSD & 100GB disk size
 18. Click continue
 19. Click "START TRAINING"
 20. Your training job should show in the Vertex AI Training menu on that region. Click on the name and click "View logs" to see the training progress
