@@ -55,7 +55,7 @@ base_model = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224,
 
 
 num_classes = 7  # Gantikan dengan jumlah sebenarnya dari kelas emosi dalam dataset Anda
-batch_size = 64
+batch_size = 32 * 4 # 128 seems to be ideal
 num_epochs = 10
 train_data_dir = 'path_to_train_data_directory'
 validation_data_dir = 'path_to_validation_data_directory'
@@ -152,22 +152,21 @@ history = model.fit(
 
 # # Saving Model
 
-# In[3]:
+# In[10]:
 
 
-saved_model_path = dataset_path + "/models/serena-emotion-detector.keras"
+saved_model_path = dataset_path + "/models/serena-emotion-detector"
 
 
 # In[ ]:
 
 
-# Use new .keras format for easier usage & better debugging
 model.save(saved_model_path)
 
 
 # # Evaluate Model
 
-# In[7]:
+# In[11]:
 
 
 saved_emotion_detector = tf.keras.models.load_model(saved_model_path)
