@@ -3,25 +3,175 @@
 
 # # Datasets
 
+# Run this `gcsfuse` cell if you can't list the folders inside of "/gcs"
+
+# In[1]:
+
+
+
+
 # When using GCS buckets, use "/gcs" instead of "gs://"
 
-# In[10]:
+# In[2]:
 
+
+#from sklearn.model_selection import train_test_split
 
 dataset_path = "/gcs/serena-shsw-datasets"
 training_dataset = dataset_path + "/FER-2013/train"
 test_dataset = dataset_path + "/FER-2013/test"
 
-get_ipython().system('echo "Train"')
-get_ipython().system('ls {training_dataset}')
-get_ipython().system('echo "Test"')
-get_ipython().system('ls {test_dataset}')
+# Split the dataset into training and validation sets
+#training_dataset, validation_dataset = train_test_split(training_dataset, test_size=0.2, random_state=42)
+
+# Output directory contents
 
 
-# # Saving Model
+# # Import Library
+
+# In[5]:
+
+
+import csv
+import string
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.applications import VGG16
+from tensorflow.keras import layers, models
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout
+
+
+# # Create Model
 
 # In[ ]:
 
 
-model.save(dataset_path + "/models/emotion-detector')
+base_model = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+
+
+# In[ ]:
+
+
+num_classes = 7  # Gantikan dengan jumlah sebenarnya dari kelas emosi dalam dataset Anda
+batch_size = 64
+num_epochs = 10
+train_data_dir = 'path_to_train_data_directory'
+validation_data_dir = 'path_to_validation_data_directory'
+test_data_dir = 'path_to_test_data_directory'
+
+
+# In[ ]:
+
+
+#num_classes = 7  # Gantikan dengan jumlah sebenarnya dari kelas emosi dalam dataset Anda
+
+#x = layers.GlobalAveragePooling2D()(x)
+#x = layers.Dense(1024, activation='relu')(x)
+#predictions = layers.Dense(num_classes, activation='softmax')(x)
+
+#model = models.Model(inputs=base_model.input, outputs=predictions)
+
+
+# In[ ]:
+
+
+for layer in base_model.layers:
+    layer.trainable = False
+
+model = Sequential([
+    base_model,
+    GlobalAveragePooling2D(),
+    Dense(256, activation='relu'),
+    Dropout(0.5),
+    Dense(7, activation='softmax')
+])
+
+
+# # Data Augmentation
+
+# In[ ]:
+
+
+train_datagen = ImageDataGenerator(
+    rescale=1.0 / 255.0,
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest'
+)
+
+train_generator = train_datagen.flow_from_directory(
+    directory=training_dataset,
+    target_size=(224, 224),
+    batch_size=64,
+    class_mode='categorical'
+)
+
+
+# # Data Generating
+
+# In[ ]:
+
+
+validation_datagen = ImageDataGenerator(rescale=1.0 / 255.0)
+
+validation_generator = validation_datagen.flow_from_directory(
+    directory=test_dataset,
+    target_size=(224, 224),
+    batch_size=64,
+    class_mode='categorical'
+)
+
+
+# In[ ]:
+
+
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+
+# history = model.fit(
+#     train_generator,
+#     epochs=10, 
+#     validation_data=validation_generator,
+# )
+
+# In[ ]:
+
+
+history = model.fit(
+    train_generator,
+    epochs=10,
+    validation_data=validation_generator,
+)
+
+
+# # Saving Model
+
+# In[3]:
+
+
+saved_model_path = dataset_path + "/models/serena-emotion-detector.keras"
+
+
+# In[ ]:
+
+
+# Use new .keras format for easier usage & better debugging
+model.save(saved_model_path)
+
+
+# # Evaluate Model
+
+# In[7]:
+
+
+saved_emotion_detector = tf.keras.models.load_model(saved_model_path)
+
+# Check its architecture
+saved_emotion_detector.summary()
 
