@@ -71,7 +71,7 @@ base_model = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224,
 #x = layers.Dense(1024, activation='relu')(x)
 #predictions = layers.Dense(num_classes, activation='softmax')(x)
 
-#model = models.Model(inputs=base_model.input, outputs=predictions)
+model = models.Model(inputs=base_model.input, outputs=predictions)
 
 
 # In[8]:
@@ -147,9 +147,6 @@ history = model.fit(
 
 saved_model_path = dataset_path + "/models/serena-emotion-detector/model"
 
-
-# In[ ]:
-
-
+# Do not uncomment this line, it will be done by setup.sh
 model.save(saved_model_path)
 
