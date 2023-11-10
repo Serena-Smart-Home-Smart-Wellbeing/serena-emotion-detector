@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# This notebook is only for developing, training, and saving the model. For evaluating the model, check `evaluate.ipynb`.
+
 # # Datasets
 
 # Run this `gcsfuse` cell if you can't list the folders inside of "/gcs"
@@ -71,7 +73,7 @@ base_model = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224,
 #x = layers.Dense(1024, activation='relu')(x)
 #predictions = layers.Dense(num_classes, activation='softmax')(x)
 
-model = models.Model(inputs=base_model.input, outputs=predictions)
+#model = models.Model(inputs=base_model.input, outputs=predictions)
 
 
 # In[8]:
@@ -150,3 +152,5 @@ saved_model_path = dataset_path + "/models/serena-emotion-detector/model"
 # Do not uncomment this line, it will be done by setup.sh
 model.save(saved_model_path)
 
+
+# After saving, use `evaluate.ipynb` to evaluate the model after loading the artifacts.

@@ -4,7 +4,7 @@ jupyter nbconvert ./trainer/task.ipynb --to python
 sed -i 's/~\/gcs/\/gcs/g' ./trainer/task.py
 sed -i 's/\/home\/jupyter\/gcs/\/gcs/g' ./trainer/task.py
 sed -i '/get_ipython/d' ./trainer/task.py
-sed -i 's/#model/model/g' ./trainer/task.py
+sed -i 's/#model.save/model.save/g' ./trainer/task.py
 
 # Zip and upload to GCS
 python setup.py sdist --formats=gztar
