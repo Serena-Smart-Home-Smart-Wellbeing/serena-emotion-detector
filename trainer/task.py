@@ -5,14 +5,14 @@
 
 # Run this `gcsfuse` cell if you can't list the folders inside of "/gcs"
 
-# In[1]:
+# In[2]:
 
 
 
 
 # When using GCS buckets, use "/gcs" instead of "gs://"
 
-# In[2]:
+# In[3]:
 
 
 #from sklearn.model_selection import train_test_split
@@ -29,7 +29,7 @@ test_dataset = dataset_path + "/FER-2013/test"
 
 # # Import Library
 
-# In[5]:
+# In[4]:
 
 
 import csv
@@ -45,13 +45,13 @@ from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout
 
 # # Create Model
 
-# In[ ]:
+# In[5]:
 
 
 base_model = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 
 
-# In[ ]:
+# In[6]:
 
 
 num_classes = 7  # Gantikan dengan jumlah sebenarnya dari kelas emosi dalam dataset Anda
@@ -62,7 +62,7 @@ validation_data_dir = 'path_to_validation_data_directory'
 test_data_dir = 'path_to_test_data_directory'
 
 
-# In[ ]:
+# In[7]:
 
 
 #num_classes = 7  # Gantikan dengan jumlah sebenarnya dari kelas emosi dalam dataset Anda
@@ -74,7 +74,7 @@ test_data_dir = 'path_to_test_data_directory'
 #model = models.Model(inputs=base_model.input, outputs=predictions)
 
 
-# In[ ]:
+# In[8]:
 
 
 for layer in base_model.layers:
@@ -91,7 +91,7 @@ model = Sequential([
 
 # # Data Augmentation
 
-# In[ ]:
+# In[9]:
 
 
 train_datagen = ImageDataGenerator(
@@ -115,7 +115,7 @@ train_generator = train_datagen.flow_from_directory(
 
 # # Data Generating
 
-# In[ ]:
+# In[10]:
 
 
 validation_datagen = ImageDataGenerator(rescale=1.0 / 255.0)
@@ -128,7 +128,7 @@ validation_generator = validation_datagen.flow_from_directory(
 )
 
 
-# In[ ]:
+# In[11]:
 
 
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -140,7 +140,7 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accur
 #     validation_data=validation_generator,
 # )
 
-# In[ ]:
+# In[12]:
 
 
 history = model.fit(
@@ -152,13 +152,15 @@ history = model.fit(
 
 # # Saving Model
 
-# In[10]:
+# Vertex AI expects the model artifacts to be saved in `BASE_OUTPUT_DIRECTORY/model/` when you want to train a new version of a model
+
+# In[13]:
 
 
-saved_model_path = dataset_path + "/models/serena-emotion-detector"
+saved_model_path = dataset_path + "/models/serena-emotion-detector/model"
 
 
-# In[ ]:
+# In[14]:
 
 
 model.save(saved_model_path)
@@ -166,11 +168,21 @@ model.save(saved_model_path)
 
 # # Evaluate Model
 
-# In[11]:
+# In[15]:
 
 
 saved_emotion_detector = tf.keras.models.load_model(saved_model_path)
 
 # Check its architecture
 saved_emotion_detector.summary()
+
+
+# In[17]:
+
+
+val_loss, val_accuracy = model.evaluate(training_datasets, training_labels)
+print(f'Validation Accuracy: {val_accuracy}')
+
+test_loss, test_accuracy = model.evaluate(test_data, test_labels)
+print(f'Test Accuracy: {test_accuracy}')
 
