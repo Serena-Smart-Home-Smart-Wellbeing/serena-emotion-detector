@@ -1,4 +1,11 @@
 # How to Train in Vertex AI
+## Using `train.sh`
+1. Run `train.sh` in the root of this folder through the terminal
+2. Once it's finished, go to Vertex Ai Training menu in GCP Console and click on "CUSTOM JOBS" tab
+3. Your training job should be displayed as "serena-emotion-detector"
+4. Click on it to view its details
+
+## Using Training Pipelin
 1. Develop your model in "/serena-emotion-detector/trainer/task.ipynb" notebook. DO NOT TRAIN IN THIS NOTEBOOK! Instead, when running cells containing the model.fit() line, only check if it runs (i.e. it outputs Epoch 1/10) and if it does, abort it.
 2. When you are done, run setup.sh
 3. Go to Vertex AI "Training" menu
