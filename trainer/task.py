@@ -7,14 +7,14 @@
 
 # Run this `gcsfuse` cell if you can't list the folders inside of "/gcs"
 
-# In[1]:
+# In[2]:
 
 
 
 
 # When using GCS buckets, use "/gcs" instead of "gs://"
 
-# In[2]:
+# In[3]:
 
 
 #from sklearn.model_selection import train_test_split
@@ -32,28 +32,31 @@ validation_dataset = dataset_path + "/FER-2013/valid"
 
 # # Import Library
 
+# In[4]:
+
+
+import tensorflow as tf
+from tensorflow.keras import layers
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.applications import ResNet50
+from google.cloud import aiplatform
+
+
+# # PRE-PROCESSING DATA
+
 # In[5]:
 
 
-import csv
-import string
-import numpy as np
-import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.applications import VGG16
-from tensorflow.keras import layers, models
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout
+BATCH_SIZE = 32
+IMG_SIZE = (224, 224)
+NUM_CLASSES = 7  # Anggap ada 7 kelas emosi wajah
 
-
-# # Hyperparameters
 
 # In[6]:
 
 
-num_classes = 7  # Gantikan dengan jumlah sebenarnya dari kelas emosi dalam dataset Anda
-batch_size = 32 * 4 # 128 seems to be ideal
-epochs = 10
+train_data_path = training_dataset
+test_data_path = test_dataset
 
 
 # # Create Model
@@ -61,83 +64,81 @@ epochs = 10
 # In[7]:
 
 
-base_model = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+# Gunakan ImageDataGenerator untuk augmentasi data
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True
+)
 
+test_datagen = ImageDataGenerator(rescale=1./255)
 
-# In[6]:
+train_dataset = train_datagen.flow_from_directory(
+    train_data_path,
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='categorical'
+)
 
-
-#num_classes = 7  # Gantikan dengan jumlah sebenarnya dari kelas emosi dalam dataset Anda
-
-#x = layers.GlobalAveragePooling2D()(x)
-#x = layers.Dense(1024, activation='relu')(x)
-#predictions = layers.Dense(num_classes, activation='softmax')(x)
-
-#model = models.Model(inputs=base_model.input, outputs=predictions)
+test_dataset = test_datagen.flow_from_directory(
+    test_data_path,
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='categorical'
+)
 
 
 # In[8]:
 
 
-for layer in base_model.layers:
-    layer.trainable = False
+# Muat model ResNet50 yang sudah dilatih tanpa lapisan teratas
+base_model = ResNet50(
+    input_shape=(224, 224, 3),
+    include_top=False,
+    weights='imagenet'
+)
 
-model = Sequential([
-    base_model,
-    GlobalAveragePooling2D(),
-    Dense(256, activation='relu'),
-    Dropout(0.5),
-    Dense(7, activation='softmax')
-])
-
-
-# # Data Generating
 
 # In[9]:
 
 
-train_datagen = ImageDataGenerator(
-    rescale=1.0 / 255.0,
-    rotation_range=20,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.2,
-    zoom_range=0.2,
-    horizontal_flip=True,
-    fill_mode='nearest'
-)
-
-train_generator = train_datagen.flow_from_directory(
-    directory=training_dataset,
-    target_size=(224, 224),
-    batch_size=batch_size,
-    class_mode='categorical'
-)
-
-validation_datagen = ImageDataGenerator(rescale=1.0 / 255.0)
-
-validation_generator = validation_datagen.flow_from_directory(
-    directory=test_dataset,
-    target_size=(224, 224),
-    batch_size=batch_size,
-    class_mode='categorical'
-)
+# Bekukan lapisan-lapisan model dasar
+for layer in base_model.layers:
+    layer.trainable = False
 
 
 # In[10]:
 
 
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+# Bangun model
+model = tf.keras.Sequential([
+    base_model,
+    layers.GlobalAveragePooling2D(),
+    layers.Dense(512, activation='relu'),
+    layers.Dropout(0.5),
+    layers.Dense(256, activation='relu'),
+    layers.Dropout(0.5),
+    layers.Dense(NUM_CLASSES, activation='softmax')
+])
 
+
+# # Data Generating
 
 # In[11]:
 
 
-history = model.fit(
-    train_generator,
-    epochs=epochs,
-    validation_data=validation_generator,
-)
+# Kompilasi model
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+
+# In[12]:
+
+
+# Latih model
+model.fit(train_dataset, epochs=50, validation_data=test_dataset)
 
 
 # # Saving Model
