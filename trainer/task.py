@@ -7,145 +7,167 @@
 
 # Run this `gcsfuse` cell if you can't list the folders inside of "/gcs"
 
-# In[2]:
+# In[9]:
 
 
 
 
 # When using GCS buckets, use "/gcs" instead of "gs://"
 
-# In[3]:
+# In[10]:
 
 
 #from sklearn.model_selection import train_test_split
 
 dataset_path = "/gcs/serena-shsw-datasets"
-training_dataset = dataset_path + "/FER-2013/train"
-test_dataset = dataset_path + "/FER-2013/test"
-validation_dataset = dataset_path + "/FER-2013/valid"
-
-# Split the dataset into training and validation sets
-#training_dataset, validation_dataset = train_test_split(training_dataset, test_size=0.2, random_state=42)
+training_dataset = dataset_path + "/FER-SERENA/train/train"
+test_dataset = dataset_path + "/FER-SERENA/test/test"
+validation_dataset = dataset_path + "/FER-SERENA/valid/validation"
 
 # Output directory contents
 
 
 # # Import Library
 
-# In[4]:
+# In[11]:
 
 
-import tensorflow as tf
-from tensorflow.keras import layers
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.applications import ResNet50
-from google.cloud import aiplatform
+from tensorflow.keras.layers import Activation
+from tensorflow.keras.layers import Input  # Import Input layer
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+import tensorflow as tf
 
 
 # # PRE-PROCESSING DATA
 
-# In[5]:
+# In[12]:
 
 
-BATCH_SIZE = 32
-IMG_SIZE = (224, 224)
-NUM_CLASSES = 7  # Anggap ada 7 kelas emosi wajah
+# Define ImageDataGenerator for data augmentation and loading
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=15,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest'
+)
+
+validation_datagen = ImageDataGenerator(rescale=1./255)
+test_datagen = ImageDataGenerator(rescale=1./255)
 
 
-# In[6]:
+# In[13]:
 
 
-train_data_path = training_dataset
-test_data_path = test_dataset
+img_size = (48, 48)
+batch_size = 64
+
+train_generator = train_datagen.flow_from_directory(
+    training_dataset,
+    target_size=img_size,
+    batch_size=batch_size,
+    class_mode='categorical',
+    color_mode='grayscale'
+)
+
+validation_generator = validation_datagen.flow_from_directory(
+    validation_dataset,
+    target_size=img_size,
+    batch_size=batch_size,
+    class_mode='categorical',
+    color_mode='grayscale'
+)
+
+test_generator = test_datagen.flow_from_directory(
+    test_dataset,
+    target_size=img_size,
+    batch_size=batch_size,
+    class_mode='categorical',
+    color_mode='grayscale',
+    shuffle=False
+)
 
 
 # # Create Model
 
-# In[7]:
+# In[14]:
 
 
-# Gunakan ImageDataGenerator untuk augmentasi data
-train_datagen = ImageDataGenerator(
-    rescale=1./255,
-    shear_range=0.2,
-    zoom_range=0.2,
-    horizontal_flip=True
-)
+model = Sequential()
 
-test_datagen = ImageDataGenerator(rescale=1./255)
+model.add(Conv2D(32, (3, 3), padding='same', kernel_initializer='he_normal', input_shape=(48, 48, 1)))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.2))
 
-train_dataset = train_datagen.flow_from_directory(
-    train_data_path,
-    target_size=IMG_SIZE,
-    batch_size=BATCH_SIZE,
-    class_mode='categorical'
-)
+model.add(Conv2D(64, (3, 3), padding='same', kernel_initializer='he_normal'))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.2))
 
-test_dataset = test_datagen.flow_from_directory(
-    test_data_path,
-    target_size=IMG_SIZE,
-    batch_size=BATCH_SIZE,
-    class_mode='categorical'
-)
+model.add(Conv2D(128, (3, 3), padding='same', kernel_initializer='he_normal'))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.2))
 
+model.add(Conv2D(256, (3, 3), padding='same', kernel_initializer='he_normal'))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.2))
 
-# In[8]:
+model.add(Flatten())
+model.add(Dense(64, kernel_initializer='he_normal'))
+model.add(Activation('relu'))
+model.add(BatchNormalization())
+model.add(Dropout(0.5))
 
+model.add(Dense(64, kernel_initializer='he_normal'))
+model.add(Activation('relu'))
+model.add(BatchNormalization())
+model.add(Dropout(0.5))
 
-# Muat model ResNet50 yang sudah dilatih tanpa lapisan teratas
-base_model = ResNet50(
-    input_shape=(224, 224, 3),
-    include_top=False,
-    weights='imagenet'
-)
+model.add(Dense(7, kernel_initializer='he_normal'))
+model.add(Activation('softmax'))
 
-
-# In[9]:
-
-
-# Bekukan lapisan-lapisan model dasar
-for layer in base_model.layers:
-    layer.trainable = False
-
-
-# In[10]:
-
-
-# Bangun model
-model = tf.keras.Sequential([
-    base_model,
-    layers.GlobalAveragePooling2D(),
-    layers.Dense(512, activation='relu'),
-    layers.Dropout(0.5),
-    layers.Dense(256, activation='relu'),
-    layers.Dropout(0.5),
-    layers.Dense(NUM_CLASSES, activation='softmax')
-])
+model.summary()
 
 
 # # Data Generating
 
-# In[11]:
+# In[15]:
 
 
-# Kompilasi model
-model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
+# Compile your model
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0005), loss='categorical_crossentropy', metrics=['accuracy'])
 
 
-# In[12]:
+# In[16]:
 
 
-# Latih model
-model.fit(train_dataset, epochs=50, validation_data=test_dataset)
+history = model.fit(
+    train_generator,
+    validation_data=validation_generator,
+    epochs=200,
+)
 
 
 # # Saving Model
 
 # Vertex AI expects the model artifacts to be saved in `BASE_OUTPUT_DIRECTORY/model/` when you want to train a new version of a model
 
-# In[12]:
+# In[1]:
 
 
 saved_model_path = dataset_path + "/models/serena-emotion-detector/model"
