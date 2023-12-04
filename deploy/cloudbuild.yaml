@@ -41,7 +41,7 @@ steps:
           ]
       id: "Push image"
 
-    - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    - name: "gcr.io/cloud-builders/gcloud"
       args:
           [
               run,
