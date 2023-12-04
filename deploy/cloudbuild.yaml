@@ -25,7 +25,14 @@ steps:
 
     - name: python
       entrypoint: pip
-      args: ["install", "-r", "./deploy/requirements.txt", "--user"]
+      args:
+          [
+              "install",
+              "--extra-index-url https://pypi.org/simple",
+              "-r",
+              "./deploy/requirements.txt",
+              "--user"
+          ]
       id: "Install dependencies"
 
     - name: "gcr.io/cloud-builders/docker"
