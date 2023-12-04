@@ -56,4 +56,5 @@ steps:
               "--service-account=serena-backend@serena-777.iam.gserviceaccount.com",
               "--allow-unauthenticated"
           ]
+      dir: "./deploy"
       id: "Deploy to Cloud Run"
