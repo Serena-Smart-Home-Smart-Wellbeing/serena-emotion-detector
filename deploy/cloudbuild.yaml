@@ -18,13 +18,9 @@ images:
     - $_IMAGE_URI
 
 steps:
-    - name: "list recursively"
-      args: ["ls", "-R"]
-
     - name: python
       entrypoint: pip
-      args: ["install", "-r", "requirements.txt", "--user"]
-      dir: "serena-emotion-detector/deploy"
+      args: ["install", "-r", "./deploy/requirements.txt", "--user"]
       id: "Install dependencies"
 
     - name: "gcr.io/cloud-builders/docker"
