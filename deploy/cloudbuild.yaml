@@ -18,6 +18,11 @@ images:
     - $_IMAGE_URI
 
 steps:
+    - name: "python"
+      entrypoint: "python"
+      args: ["-m", "pip", "install", "--upgrade", "pip"]
+      id: "Upgrade pip"
+
     - name: python
       entrypoint: pip
       args: ["install", "-r", "./deploy/requirements.txt", "--user"]
