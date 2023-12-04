@@ -22,11 +22,6 @@ steps:
       args: ["-m", "pip", "install", "--upgrade", "pip"]
       id: "Upgrade pip"
 
-    # - name: python
-    #   entrypoint: pip
-    #   args: ["install", "-r", "./deploy/requirements.txt", "--user"]
-    #   id: "Install dependencies"
-
     - name: "gcr.io/cloud-builders/docker"
       args:
           [
@@ -37,11 +32,6 @@ steps:
           ]
       id: "Build image"
       dir: "./deploy"
-
-    - name: google/cloud-sdk
-      args: ["auth", "configure-docker", "$_AR_HOSTNAME"]
-      entrypoint: "gcloud"
-      id: "Configure Docker"
 
     - name: "gcr.io/cloud-builders/docker"
       args:
