@@ -33,6 +33,10 @@ steps:
       id: "Build image"
       dir: "./deploy"
 
+    - name: google/cloud-sdk
+      args: ["auth", "configure-docker", "$_AR_HOSTNAME"]
+      entrypoint: "gcloud"
+
     - name: "gcr.io/cloud-builders/docker"
       args: ["push", "$_IMAGE_URI"]
       id: "Push image"
