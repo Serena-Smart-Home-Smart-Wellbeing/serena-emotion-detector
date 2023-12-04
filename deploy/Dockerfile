@@ -1,7 +1,5 @@
 FROM python:3.10-slim
 
-ENV PYTHONUNBUFFERED True
-
 ENV APP_HOME /app
 
 ENV PORT 5000
