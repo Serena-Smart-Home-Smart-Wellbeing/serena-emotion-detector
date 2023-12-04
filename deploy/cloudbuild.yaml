@@ -23,10 +23,10 @@ steps:
       args: ["-m", "pip", "install", "--upgrade", "pip"]
       id: "Upgrade pip"
 
-    - name: python
-      entrypoint: pip
-      args: ["install", "-r", "./deploy/requirements.txt", "--user"]
-      id: "Install dependencies"
+    # - name: python
+    #   entrypoint: pip
+    #   args: ["install", "-r", "./deploy/requirements.txt", "--user"]
+    #   id: "Install dependencies"
 
     - name: "gcr.io/cloud-builders/docker"
       args: ["build", "-t", "$_IMAGE_URI", "."]
