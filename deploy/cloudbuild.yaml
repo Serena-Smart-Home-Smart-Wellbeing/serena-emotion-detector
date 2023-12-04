@@ -21,7 +21,7 @@ steps:
     - name: python
       entrypoint: pip
       args: ["install", "-r", "requirements.txt", "--user"]
-      dir: "/workspace/serena-emotion-detector/deploy"
+      dir: "/workspace/serena-emotion-detector/deploy/"
       id: "Install dependencies"
 
     - name: "gcr.io/cloud-builders/docker"
