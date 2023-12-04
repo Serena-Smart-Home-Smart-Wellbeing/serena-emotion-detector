@@ -41,7 +41,7 @@ steps:
           ]
       id: "Push image"
 
-    - name: google/cloud-sdk
+    - name: "google/cloud-sdk"
       args:
           [
               run,
