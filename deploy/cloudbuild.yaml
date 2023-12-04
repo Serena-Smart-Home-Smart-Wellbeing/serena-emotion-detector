@@ -21,6 +21,7 @@ steps:
     - name: python
       entrypoint: pip
       args: ["install", "-r", "requirements.txt", "--user"]
+      dir: "deploy"
       id: "Install dependencies"
 
     - name: "gcr.io/cloud-builders/docker"
