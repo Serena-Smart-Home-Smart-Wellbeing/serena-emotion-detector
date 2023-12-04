@@ -1,0 +1,49 @@
+options:
+    substitutionOption: ALLOW_LOOSE
+    logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+    _SERVICE_NAME: serena-emotion-detector
+    _AR_HOSTNAME: asia-southeast2-docker.pkg.dev
+    _DEPLOY_REGION: asia-southeast2
+    _PLATFORM: managed
+    _IMAGE_URI: $_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+
+tags:
+    - gcp-cloud-build-deploy-cloud-run
+    - gcp-cloud-build-deploy-cloud-run-managed
+    - serena-emotion-detector
+
+images:
+    - $_IMAGE_URI
+
+steps:
+    - name: python
+      entrypoint: pip
+      args: ["install", "-r", "requirements.txt", "--user"]
+      id: "Install dependencies"
+
+    - name: "gcr.io/cloud-builders/docker"
+      args: ["build", "-t", "$_IMAGE_URI", "."]
+      id: "Build image"
+
+    - name: "gcr.io/cloud-builders/docker"
+      args: ["push", "$_IMAGE_URI"]
+      id: "Push image"
+
+    - name: google/cloud-sdk
+      args:
+          [
+              run,
+              deploy,
+              $_SERVICE_NAME,
+              "--platform=managed",
+              "--image=$_IMAGE_URI",
+              "--labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID",
+              "--region=$_DEPLOY_REGION",
+              "--quiet",
+              "--max-instances=1",
+              "--service-account=serena-backend@serena-777.iam.gserviceaccount.com",
+              "--allow-unauthenticated"
+          ]
+      id: "Deploy to Cloud Run"
