@@ -55,7 +55,7 @@ steps:
               "--max-instances=1",
               "--service-account=serena-backend@serena-777.iam.gserviceaccount.com",
               "--allow-unauthenticated",
-              "--memory=1GiB"
+              "--memory=1Gi"
           ]
       dir: "./deploy"
       id: "Deploy to Cloud Run"
