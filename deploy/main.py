@@ -8,7 +8,14 @@ from tensorflow import keras
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
-model = keras.models.load_model("./model/serena-emotion-detector.h5", compile=False)
+
+# Yang ini lebih berat angry
+# model = keras.models.load_model("./model/serena-emotion-detector.h5", compile=False)
+
+# Yang ini lebih rata angry, fear, & neutral
+model = keras.models.load_model(
+    "./model/models_model_64accuray_angrycorrect.h5", compile=False
+)
 model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
 labels = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
 
@@ -82,4 +89,27 @@ def index():
 
 
 if __name__ == "__main__":
+    # model.summary()
     app.run(debug=True)
+
+# Model file models_model_64accuray_angrycorrect.h5
+# {
+#     "angry": 29.651018977165222,
+#     "disgust": 10.591613501310349,
+#     "fear": 28.091728687286377,
+#     "happy": 2.5392208248376846,
+#     "neutral": 23.156139254570007,
+#     "sad": 0.6641537882387638,
+#     "surprise": 5.3061265498399734,
+# }
+
+# Model file serena-emotion-detector.h5
+# {
+#     "angry": 66.56327843666077,
+#     "disgust": 8.644931018352509,
+#     "fear": 8.207805454730988,
+#     "happy": 0.49696043133735657,
+#     "neutral": 7.5864724814891815,
+#     "sad": 7.924692332744598,
+#     "surprise": 0.5758598912507296,
+# }
