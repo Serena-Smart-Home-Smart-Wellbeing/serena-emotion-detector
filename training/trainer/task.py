@@ -1,464 +1,218 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# This notebook is only for developing, training, and saving the model. For evaluating the model, check `evaluate.ipynb`.
+# # Serena Emotion Detector - Training Notebook
+# 
+# This notebook is used to setup and train Serena Emotion Detector in Vertex AI. The output will be saved to our GCS bucket `serena-shsw-datasets/models` folder.  
+# To evaluate the model, use `evaluate.ipynb` notebook in this directory.
+# 
 
-# # Datasets
+# ## Background
+# 
+# Serena Emotion Detector is a CNN model that detects 7 emotions (`angry`, `disgust`, `fear`, `happy`, `neutral`, `sad`, `surprise`) from a person's front-facing photo. We use [FER2013](https://www.kaggle.com/deadskull7/fer2013) dataset since it is a popular dataset for emotion detection.
+# 
+# When we were starting with creating our model, we used to create the architecture from scratch. But after multiple trial and errors, the best we could get was around 64% accuracy. Even then, that took about 3 hours for every 10 epoch training session in Vertex AI. Other than that, our own models always faced problems where it would classify wrong emotions or would just be biased towards one emotion class.
+# 
+# After learning from our mistakes, learning more about CNN, and learning from tutorials; we decided to use transfer learning. We used transfer learning since it would be quicker to train and we don't have to design the architecture from scratch, instead we would just need to modify the dataset and some layers to fit our needs of detecting 7 classes of emotions.
+# 
+# The model we use for transfer learning is [MobileNetV2](https://www.ict-srilanka.com/blog/what-is-mobilenetv2). We use MobileNetV2 since it is designed to be lightweight for devices with limited resources (e.g. mobile phones, IoT devices, etc). We think this would make predictions quicker when deployed on Cloud Run or later in the future when we want to embed it directly into our IoT device `SerenBox`.
+# 
 
-# Run this `gcsfuse` cell if you can't list the folders inside of "/gcs"
+# ## Setup
+# 
+# We store our dataset in GCS. There are 7 classes, each class seperated into a folder. We'll save the model using the latest `.keras` instead of `.h5` since it's more modern and easier to move around since it will save the weight and model configuration in one file.  
+# If you want to try it out yourself, you need to replace `train_dataset_path` to your own FER-2013 dataset path. You can download FER-2013 dataset [here](https://www.kaggle.com/msambare/fer2013).
+# 
+# > 🚧 Warning
+# >
+# > This notebook was designed to be run in OUR Vertex AI environment. If you want to run it yourself, you need to change some code to fit your environment.  
+# > You can directly use our model without having to train it first by following the steps in `evaluate.ipynb` notebook.
+# 
 
-# In[4]:
+# In[1]:
 
 
+import os
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+from tensorflow import keras
+from keras import Model, layers
+from keras.applications import MobileNetV2
+from keras.callbacks import ModelCheckpoint
+
+gcs_path = "/gcs/serena-shsw-datasets/"
+train_dataset_path = os.path.join(
+    gcs_path, "FER-2013/train"  # TODO: change this to your own dataset
+)
+model_save_path = os.path.join(
+    gcs_path,
+    "models/serena-emotion-detector.keras",  # TODO: change this to your own path
+)
+classes = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
 
 
-# When using GCS buckets, use "/gcs" instead of "gs://"
+# ## Processing Training Data
+# 
 
-# In[5]:
+# Read 40% of the images from each folder, convert them into numpy array, then append them into `training_data`. We only read 40% of the images since we keep running into memory limit errors even when using `n1-highmem-32` VM + 2 `NVIDIA_TESLA_T4` accelerators. We think this is due reshaping each image to 224x224 which is pretty big. But even with 40% of the data, we could still get accuracy of more than 90% for the model.
+# 
+
+# In[1]:
 
 
-#from sklearn.model_selection import train_test_split
+# There are 28709 images in the training set for FER-2013
+train_dataset_total = 28709
+sample_size = train_dataset_total * 0.40
+print("Sample size: ", sample_size)
 
-dataset_path = "/gcs/serena-shsw-datasets"
-train_path = dataset_path + "/FER-SERENA/train/train"
-test_path = dataset_path + "/FER-SERENA/test/test"
-validation_path = dataset_path + "/FER-SERENA/valid/validation"
+training_data = []
+img_size = 224
+img_array = []
 
-# Output directory contents
+
+def stratified_sample_size_for_class(
+    stratum_size, train_dataset_total=train_dataset_total, sample_size=sample_size
+):
+    return round(((sample_size / train_dataset_total) * stratum_size))
+
+
+# Use this if memory is limited and you are getting sigkill errors
+def create_training_data_stratified_sample():
+    for category in classes:
+        path = os.path.join(train_dataset_path, category)
+        class_num = classes.index(category)
+        stratum_size = len(os.listdir(path))
+        sample_size = stratified_sample_size_for_class(stratum_size)
+        print(
+            "Class: ",
+            category,
+            "Stratum size: ",
+            stratum_size,
+            "Sample size: ",
+            sample_size,
+        )
+        for img in os.listdir(path)[:sample_size]:
+            try:
+                img_array = cv2.imread(os.path.join(path, img))
+                new_array = cv2.resize(img_array, (img_size, img_size))
+                training_data.append([new_array, class_num])
+            except Exception as e:
+                pass
 
 
 # In[6]:
 
 
-shape_x = 48
-shape_y = 48
+create_training_data_stratified_sample()
 
 
 # In[7]:
 
 
-import numpy as np
-import os
-from PIL import Image
+print("Total training data size: ", len(training_data))
 
-def read_images_from_folder(folder_path):
-    images = []
-    labels = []
-    for idx, emotion_folder in enumerate(os.listdir(folder_path)):
-        if os.path.isdir(os.path.join(folder_path, emotion_folder)):
-            emotion_dir = os.path.join(folder_path, emotion_folder)
-            for filename in os.listdir(emotion_dir):
-                if filename.endswith(".jpg"):
-                    img_path = os.path.join(emotion_dir, filename)
-                    img = Image.open(img_path).resize((48, 48))  # Resize images as needed
-                    img_array = np.array(img)
-                    images.append(img_array)
-                    labels.append(idx)  # Append label corresponding to the image
-    images = np.array(images)
-    labels = np.array(labels)
-    images = np.expand_dims(images, axis=-1)  # Add a channel dimension
-    labels = np.expand_dims(labels, axis=-1)  # Reshape labels
-    return images, labels
 
-# Assuming you have defined train_path, test_path, and validation_path
+# Randomize the training data to avoid bias
+# 
 
-# Read images and labels for train, test, and validation sets
-train_images, train_labels = read_images_from_folder(train_path)
-test_images, test_labels = read_images_from_folder(test_path)
-validation_images, validation_labels = read_images_from_folder(validation_path)
+# In[8]:
 
-# Normalize pixel values to range [0, 1]
-train_images = train_images / 255.0
-test_images = test_images / 255.0
-validation_images = validation_images / 255.0
 
-# Print shapes of data arrays
-print("Shape of train_images and train_labels:", train_images.shape, train_labels.shape)
-print("Shape of test_images and test_labels:", test_images.shape, test_labels.shape)
-print("Shape of validation_images and validation_labels:", validation_images.shape, validation_labels.shape)
+import random
 
+
+random.shuffle(training_data)
+
+
+# Reshape training data to fit our model
+# 
+
+# In[9]:
+
+
+X = []
+y = []
+
+for features, label in training_data:
+    X.append(features)
+    y.append(label)
+
+X = np.array(X).reshape(-1, img_size, img_size, 3)
+Y = np.array(y)
+
+print(X.shape)
+print(Y.shape)
+
+
+# Normalize the data
+# 
 
 # In[10]:
 
 
-nRows, nCols, nDims = train_images.shape[1:]  # Menggunakan train_images
-input_shape = (nRows, nCols, nDims)
-classes = np.unique(train_labels)
-nClasses = len(classes)
+X = X / 255.0
 
+
+# ## Creating Transfer Learning Model
+# 
+
+# Create pretrained model from `MobileNetV2`.
+# 
 
 # In[11]:
 
 
-from tensorflow.keras.utils import to_categorical
-# Change to float datatype (if not already float32)
-train_data = train_images.astype('float32')
-test_data = test_images.astype('float32')
+pretrained_model = MobileNetV2()
+pretrained_model.summary()
 
-# Change the labels from integer to categorical data
-train_labels_one_hot = to_categorical(train_labels)
-test_labels_one_hot = to_categorical(test_labels)
 
+# Create new layers from the pretrained model.
+# 
 
 # In[12]:
 
 
-# Find the unique numbers from the train labels
-classes = np.unique(train_labels)
-nClasses = len(classes)
-print('Total number of outputs : ', nClasses)
-print('Output classes : ', classes)
+input_layer = pretrained_model.layers[0].input
+base_output_layer = pretrained_model.layers[-2].output
 
-# Find the shape of input images
-nSamples, nRows, nCols = train_images.shape[0], train_images.shape[1], train_images.shape[2]
-nDims = 1  # Assuming the images are grayscale
-input_shape = (nRows, nCols, nDims)
-print('Input shape : ', input_shape)
+output_layer = layers.Dense(128)(base_output_layer)
+output_layer = layers.Activation("relu")(output_layer)
+output_layer = layers.Dense(64)(output_layer)
+output_layer = layers.Activation("relu")(output_layer)
+output_layer = layers.Dense(7, activation="softmax")(output_layer)
+
+print(output_layer)
+
+new_model = Model(
+    inputs=input_layer,
+    outputs=output_layer,
+)
+new_model._name = "serena-emotion-detector"
+new_model.summary()
 
 
 # In[13]:
 
 
-class_labels = sorted(os.listdir(train_path ))
-
-print("Class labels:", class_labels)
-
-
-# In[14]:
-
-
-#Defining labels 
-def get_label(argument):
-    labels = {0:'Angry', 1:'Disgust', 2:'Fear', 3:'Happy', 4:'neutral' , 5:'sad', 6:'Surprise'}
-    return(labels.get(argument, "Invalid emotion"))
-
-
-# In[15]:
-
-
-import pandas as pd
-import matplotlib.pyplot as plt
-
-plt.figure(figsize=[10,5])
-
-# Menampilkan gambar pertama dalam data latih (train_images) dan labelnya (train_labels)
-plt.subplot(121)
-plt.imshow(np.squeeze(train_images[0], axis=2), cmap='gray')  # Menggunakan train_images
-plt.title("Ground Truth : {}".format(get_label(int(train_labels[0]))))  # Menggunakan train_labels
-
-# Menampilkan gambar pertama dalam data uji (test_images) dan labelnya (test_labels)
-plt.subplot(122)
-plt.imshow(np.squeeze(test_images[0], axis=2), cmap='gray')  # Menggunakan test_images
-plt.title("Ground Truth : {}".format(get_label(int(test_labels[0]))))  # Menggunakan test_labels
-
-plt.show()
-
-
-# In[16]:
-
-
-# Cek jumlah sampel per kelas pada data latih
-unique, counts = np.unique(train_labels, return_counts=True)
-print(dict(zip(unique, counts)))
-
-# Cek jumlah sampel per kelas pada data uji
-unique, counts = np.unique(test_labels, return_counts=True)
-print(dict(zip(unique, counts)))
-
-
-# In[17]:
-
-
-import tensorflow as tf
-print(tf.__version__)
-
-
-# In[18]:
-
-
-import numpy as np
-from imblearn.over_sampling import SMOTE
-from tensorflow.keras.utils import to_categorical
-from sklearn.utils import class_weight
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-
-
-# 1. Oversampling using SMOTE
-smote = SMOTE(random_state=42)
-train_images_resampled, train_labels_resampled = smote.fit_resample(train_images.reshape(-1, 48*48), train_labels)
-train_images_resampled = train_images_resampled.reshape(-1, 48, 48)
-
-
-# In[19]:
-
-
-# Flatten train_labels if needed
-flat_train_labels = train_labels.flatten() if train_labels.ndim > 1 else train_labels
-
-# Compute class counts
-class_counts = np.bincount(flat_train_labels)
-total_samples = np.sum(class_counts)
-
-# Calculate class weights
-class_weights = total_samples / (len(class_counts) * class_counts)
-
-# Convert to dictionary
-class_weights_dict = {i: weight for i, weight in enumerate(class_weights)}
-
-
-# In[20]:
-
-
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-import numpy as np
-
-# Define augmented data generator
-datagen = ImageDataGenerator(
-    rotation_range=10,
-    width_shift_range=0.1,
-    height_shift_range=0.1,
-    shear_range=0.2,
-    zoom_range=0.2,
-    horizontal_flip=True,
-    vertical_flip=True,
-    fill_mode='nearest'
+new_model.compile(
+    loss="sparse_categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
 )
 
-batch_size = 18  
-# Calculate the number of batches
-num_batches = len(train_images_resampled) // batch_size
 
-# Initialize empty lists to store augmented data
-augmented_images = []
-augmented_labels = []
-
-# Perform augmentation in a loop
-for i in range(num_batches):
-    x_batch = train_images_resampled[i * batch_size: (i + 1) * batch_size]
-    y_batch = train_labels_one_hot[i * batch_size: (i + 1) * batch_size]
-    
-    # Add channel dimension explicitly
-    x_batch_with_channel = np.expand_dims(x_batch, axis=-1)
-    
-    # Generate augmented images
-    x_augmented = datagen.flow(x_batch_with_channel, batch_size=batch_size, shuffle=False)
-    augmented_images_batch = next(x_augmented)
-    
-    # Append augmented images to the list
-    augmented_images.append(augmented_images_batch)
-    
-    # Repeat the labels to match the number of augmented images generated
-    if len(y_batch) > 0:
-        num_repeats = len(augmented_images_batch) // len(y_batch)
-        augmented_labels_batch = np.tile(y_batch, (num_repeats, 1))
-        augmented_labels.append(augmented_labels_batch)
-    else:
-        # Handle the case where y_batch has zero length
-        # You might want to skip or handle this differently based on your specific use case
-        pass
-
-# Concatenate augmented data
-augmented_images = np.concatenate(augmented_images)
-augmented_labels = np.concatenate(augmented_labels)
-
-
-# In[21]:
-
-
-bucket_name = 'serena-shsw-datasets'
-file_name = 'haarcascade_frontalface_default.xml'
-
-
-# In[22]:
-
-
-import cv2
-import matplotlib.pyplot as plt
-import numpy as np
-
-# Function to extract facial features
-def extract_face_features(faces, target_shape=(48, 48)):
-    gray = faces[0]
-    detected_face = faces[1]
-    
-    new_face = []
-    for det in detected_face:
-        x, y, w, h = det
-        horizontal_offset = int(0.075 * w)
-        vertical_offset = int(0.05 * h)
-
-        extracted_face = gray[y+vertical_offset:y+h, x+horizontal_offset:x-horizontal_offset+w]
-    
-        # Resize the extracted face to the target shape
-        new_extracted_face = cv2.resize(extracted_face, target_shape)
-        new_extracted_face = new_extracted_face.astype(np.float32) / 255.0  # Normalize pixel values
-        new_face.append(new_extracted_face)
-    
-    return new_face
-
-# Function to detect faces
-def detect_face(frame):
-    cascPath = 'haarcascade_frontalface_default.xml'  # Path to the XML file
-    faceCascade = cv2.CascadeClassifier(cascPath)
-    
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    detected_faces = faceCascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-    return gray, detected_faces
-
-# Load an image
-image_path = '/gcs/serena-shsw-datasets/FER-SERENA/predict/example2.jpg'
-frame = cv2.imread(image_path)
-
-# Detect faces in the image
-gray, faces = detect_face(frame)
-
-# Extract features from detected faces
-extracted_faces = extract_face_features((gray, faces))
-
-# Display or use the extracted faces as needed
-for face in extracted_faces:
-    plt.imshow(face, cmap='gray')
-    plt.axis('off')
-    plt.show()
-
-
-# In[23]:
-
-
-trump = '/gcs/serena-shsw-datasets/FER-SERENA/predict/example2.jpg'
-trump_face = cv2.imread(trump)  # Read the image without color conversion
-trump_face = cv2.cvtColor(trump_face, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
-
-plt.imshow(trump_face)
-plt.axis('off')  # Hide axis ticks and labels
-plt.show()
-
-
-# In[24]:
-
-
-# Assuming detect_face is defined somewhere in your code or imported from a library
-gray_trump_face, face_coords = detect_face(trump_face)  # Extract grayscale image and face coordinates
-face = extract_face_features((gray_trump_face, face_coords))[0]  # Extract facial features from the grayscale image
-
-plt.imshow(face, cmap='gray')  # Display the extracted facial features
-plt.axis('off')  # Hide axis ticks and labels
-plt.show()
-
-
-# In[25]:
-
-
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, BatchNormalization
-from keras.layers.core import Dense, Dropout, Activation, Flatten
-
-# Define the input shape
-input_shape = (48, 48, 1)  # Assuming grayscale images with dimensions 48x48
-
-# Create the model function
-def createModel3():
-    
-    #Model Initialization
-    model = Sequential() 
-    
-    model.add(Conv2D(20, (3, 3), padding='same', activation='relu', input_shape=input_shape))
-    model.add(Conv2D(30, (3, 3), padding='same', activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
-    model.add(Dropout(0.2))
-    
-    model.add(Conv2D(40, (3, 3), padding='same', activation='relu'))
-    model.add(Conv2D(50, (3, 3), padding='same', activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
-    model.add(Dropout(0.2))
-    
-    model.add(Conv2D(60, (3, 3), padding='same', activation='relu'))
-    model.add(Conv2D(70, (3, 3), padding='same', activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.2))
-    
-    model.add(Conv2D(80, (3, 3), padding='same', activation='relu'))
-    model.add(Conv2D(90, (3, 3), padding='same', activation='relu'))
-    
-    #Flattening
-    model.add(Flatten())
-    
-    #Adding fully connected layer
-    model.add(Dense(1000, activation='relu'))
-    model.add(Dense(512, activation='relu'))
-    
-    #Adding Output Layer
-    model.add(Dense(nClasses, activation='softmax'))
-     
-    return model
-
-# Create the model instance
-model = createModel3()
-
-# Compile the model (add optimizer, loss function, and metrics)
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-
-# Display model summary to check dimensions
-model.summary()
-
-
-# In[26]:
-
-
-from tensorflow.keras.utils import plot_model
-
-plot_model(model, to_file='model_images/model_plot.png', show_shapes=True, show_layer_names=True)
-
-
-# In[27]:
-
-
-datagen = ImageDataGenerator(
-        zoom_range=0.2,          # randomly zoom into images
-        rotation_range=10,       # randomly rotate images in the range (degrees, 0 to 180)
-        width_shift_range=0.1,   # randomly shift images horizontally (fraction of total width)
-        height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
-        horizontal_flip=True,    # randomly flip images
-        vertical_flip=False) 
-
+# Start training the model and saving the best model.
+# 
+# > 🚧 Warning
+# >
+# > DO NOT TRAIN DIRECTLY ON YOUR LOCAL COMPUTER, unless you have a really beefy computer with atleast 100GB of RAM. Why? Because the dataset is huge and it would take a loooonngggg time to train locally.
+# > To train, run `train.sh` to package this notebook and train it on Vertex AI using `n1-highmem-8` VM + 1 `NVIDIA_TESLA_T4` accelerator.
+# 
 
 # In[ ]:
 
 
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
- 
-batch_size = 256
-epochs = 3
+new_model.fit(X, Y, epochs=25)
 
+new_model.save(model_save_path)
 
-# Reshape the data to have the correct dimensions
-train_data_with_channels = train_data.reshape(train_data.shape[0], shape_x, shape_y, 1)
-test_data_with_channels = test_data.reshape(test_data.shape[0], shape_x, shape_y, 1)
-
-# Then use ImageDataGenerator
-history = model.fit_generator(
-    datagen.flow(train_data_with_channels, train_labels_one_hot, batch_size=batch_size),
-    steps_per_epoch=int(np.ceil(train_data_with_channels.shape[0] / float(batch_size))),
-    epochs=epochs,
-    validation_data=(test_data_with_channels, test_labels_one_hot)
-)
-
-
-# # Saving Model
-
-# Vertex AI expects the model artifacts to be saved in `BASE_OUTPUT_DIRECTORY/model/` when you want to train a new version of a model
-
-# In[ ]:
-
-
-saved_model_path = dataset_path + "/models/serena-emotion-detector/model"
-h5_path = dataset_path + "/models/serena-emotion-detector/model.h5"
-
-# Do not uncomment this line, it will be done by setup.sh
-model.save(saved_model_path)
-model.save(h5_path)
-
-
-# After saving, use `evaluate.ipynb` to evaluate the model after loading the artifacts.

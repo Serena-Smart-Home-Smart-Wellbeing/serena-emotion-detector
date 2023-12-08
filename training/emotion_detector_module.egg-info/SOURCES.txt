@@ -1,4 +1,3 @@
-README.md
 setup.py
 emotion_detector_module.egg-info/PKG-INFO
 emotion_detector_module.egg-info/SOURCES.txt
