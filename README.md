@@ -18,6 +18,10 @@ After learning from our mistakes, learning more about CNN, and learning from tut
 
 The model we use for transfer learning is [MobileNetV2](https://www.ict-srilanka.com/blog/what-is-mobilenetv2). We use MobileNetV2 since it is designed to be lightweight for devices with limited resources (e.g. mobile phones, IoT devices, etc). We think this would make predictions quicker when deployed on Cloud Run or later in the future when we want to embed it directly into our IoT device `SerenBox`.
 
+We were able to get 94% accuracy with our model:
+<!-- TODO tambah graph accuracy -->
+<!-- TODO tambah graph loss -->
+
 ## How to Train in Vertex AI
 
 Our notebook is configured to be trained in OUR Vertex AI environment. The training code is in [task.ipynb](training/trainer/task.ipynb) notebook. You need to adjust the code if you want to train it in your own Vertex AI environment. But, if you want to use the model directly, see the [How to Evaluate Model](#how-to-evaluate-model) section.
