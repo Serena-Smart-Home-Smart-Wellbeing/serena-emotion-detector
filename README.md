@@ -5,6 +5,8 @@
   - [How to Train in Vertex AI](#how-to-train-in-vertex-ai)
     - [Model Training Behind the Scenes](#model-training-behind-the-scenes)
   - [How to Evaluate Model](#how-to-evaluate-model)
+  - [Running Local Flask Server](#running-local-flask-server)
+  - [Production Server](#production-server)
 
 ## Background
 
@@ -36,3 +38,21 @@ We develop our model in the [task.ipynb](training/trainer/task.ipynb) notebook. 
 ## How to Evaluate Model
 
 You can go load the [serena-emotion-detector.keras](deploy/model/serena-emotion-detector.keras) in the `/deploy/model` folder or use [evaluate.ipynb](training/trainer/evaluate.ipynb) inside of the `/training/trainer` folder. Open up the notebook and follow the steps there.
+
+## Running Local Flask Server
+
+The `/deploy` folder contains code to run Flask server that hosts this model. You can run it locally by:
+
+1. CD into `/deploy` folder
+2. Install dependencies through [requirements.txt](deploy/requirements.txt)
+3. Run `python main.py` in the terminal
+4. Test your local endpoint by running [test.sh](deploy/test.sh)
+
+## Production Server
+
+We use Cloud Build for CI/CD so that whenever we push to `main` branch, it's going to deploy on Cloud Run. The steps to deploy it is contained in [cloudbuild.yaml](deploy/cloudbuild.yaml) and [Dockerfile](deploy/Dockerfile).
+You can use our public endpoint [https://serena-emotion-detector-2g6tjw7nja-et.a.run.app](https://serena-emotion-detector-7q3q3q3q3q-uc.a.run.app/) by sending a POST request as described in [test.sh](deploy/test.sh):
+
+```bash
+curl -X POST -F "file=@$image" https://serena-emotion-detector-2g6tjw7nja-et.a.run.app/predict
+```
