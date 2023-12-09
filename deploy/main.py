@@ -1,66 +1,52 @@
-import io
+import base64
 import os
 
+import cv2
 import numpy as np
 from flask import Flask, jsonify, request
-from PIL import Image
 from tensorflow import keras
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
-
-# Yang ini lebih berat angry
-# model = keras.models.load_model("./model/serena-emotion-detector.h5", compile=False)
-
-# Yang ini lebih rata angry, fear, & neutral
 model = keras.models.load_model(
-    "./model/models_model_64accuray_angrycorrect.h5", compile=False
+    os.path.join(".", "model", "serena-emotion-detector.keras")
 )
-model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-labels = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
+faceCascade = cv2.CascadeClassifier(
+    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+)
+
+classes = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
+img_size = 224
 
 
-def transform_image(image):
-    # TODO: buat fungsi untuk transformasi gambar sesuai dengan yang dilakukan di training untuk bisa digunakan dalam model.predict
-    # Turn to grayscale
-    transformed_image = image.convert("L")
+def preprocess_image(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = faceCascade.detectMultiScale(gray, 1.1, 4)
 
-    # This one causes every class to be around 14% predicted
-    # transformed_image = np.asarray(transformed_image)
-    # transformed_image = transformed_image / 255
-    # transformed_image = transformed_image[np.newaxis, ..., np.newaxis]
-    # transformed_image = tf.image.resize(transformed_image, [48, 48])
+    for x, y, w, h in faces:
+        roi_gray = gray[y : y + h, x : x + w]
+        roi_color = image[y : y + h, x : x + w]
+        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        faces = faceCascade.detectMultiScale(roi_gray)
+        if len(faces) == 0:
+            raise ValueError("Face not detected")
+        else:
+            for ex, ey, ew, eh in faces:
+                face_roi = roi_color[ey : ey + eh, ex : ex + ew]
 
-    # Resize to 48x48
-    transformed_image = transformed_image.resize((48, 48))
-    # Reshape to np array
-    transformed_image = np.reshape(transformed_image, (1, 48, 48, 1))
-    return transformed_image
+    final_image = cv2.resize(face_roi, (img_size, img_size))
+    final_image = np.expand_dims(final_image, axis=0)
+    final_image = final_image / 255.0
 
-
-# Function to retrieve the label corresponding to an emotion
-def get_emotion_label(emotion_code):
-    # Emotion labels mapping
-    emotion_labels = {
-        0: "Angry",
-        1: "Disgust",
-        2: "Fear",
-        3: "Happy",
-        4: "Sad",
-        5: "Surprise",
-        6: "Neutral",
-    }
-    return emotion_labels.get(emotion_code, "Invalid emotion")
+    return final_image
 
 
-def predict(image):
-    # TODO: predict menggunakan model yang sudah diload di atas dan return hasil prediksi berupa desimal dari 7 emosi + labelnya dalam bentuk Dictionary
-    # Predict
-    prediction = model.predict(image)
-    # Get labels
+def predict(normalized_image):
+    predictions = model.predict(normalized_image)
+
     result = {}
-    for i, label in enumerate(labels):
-        percentage = prediction[0][i] * 100
+    for i, label in enumerate(classes):
+        percentage = predictions[0][i] * 100
         result[label.lower()] = percentage
 
     return result
@@ -77,10 +63,11 @@ def index():
             return jsonify({"message": "Missing image", "status": 400})
 
         try:
-            image_bytes = file.read()
-            user_photo = Image.open(io.BytesIO(image_bytes))
-            transformed_image = transform_image(user_photo)
-            prediction = predict(transformed_image)
+            filestr = request.files["file"].read()
+            file_bytes = np.frombuffer(filestr, np.uint8)
+            user_photo = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            processed_image = preprocess_image(user_photo)
+            prediction = predict(processed_image)
             return prediction
         except Exception as e:
             return jsonify({"message": str(e), "status": 500})
@@ -89,27 +76,4 @@ def index():
 
 
 if __name__ == "__main__":
-    # model.summary()
     app.run(debug=True)
-
-# Model file models_model_64accuray_angrycorrect.h5
-# {
-#     "angry": 29.651018977165222,
-#     "disgust": 10.591613501310349,
-#     "fear": 28.091728687286377,
-#     "happy": 2.5392208248376846,
-#     "neutral": 23.156139254570007,
-#     "sad": 0.6641537882387638,
-#     "surprise": 5.3061265498399734,
-# }
-
-# Model file serena-emotion-detector.h5
-# {
-#     "angry": 66.56327843666077,
-#     "disgust": 8.644931018352509,
-#     "fear": 8.207805454730988,
-#     "happy": 0.49696043133735657,
-#     "neutral": 7.5864724814891815,
-#     "sad": 7.924692332744598,
-#     "surprise": 0.5758598912507296,
-# }
