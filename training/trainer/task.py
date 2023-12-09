@@ -29,6 +29,13 @@
 # > You can directly use our model without having to train it first by following the steps in `evaluate.ipynb` notebook.
 # 
 
+# Run this `gcsfuse` cell if you are using Vertex AI workbench and can't list the folders inside of "/gcs"
+
+# In[43]:
+
+
+
+
 # In[1]:
 
 
@@ -38,7 +45,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from tensorflow import keras
-from keras import Model, layers
+from keras import layers, Model
 from keras.applications import MobileNetV2
 from keras.callbacks import ModelCheckpoint
 
@@ -59,24 +66,24 @@ classes = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
 # Read 40% of the images from each folder, convert them into numpy array, then append them into `training_data`. We only read 40% of the images since we keep running into memory limit errors even when using `n1-highmem-32` VM + 2 `NVIDIA_TESLA_T4` accelerators. We think this is due reshaping each image to 224x224 which is pretty big. But even with 40% of the data, we could still get accuracy of more than 90% for the model.
 # 
 
-# In[1]:
+# In[5]:
 
+
+from math import ceil
 
 # There are 28709 images in the training set for FER-2013
 train_dataset_total = 28709
-sample_size = train_dataset_total * 0.40
+sample_size = 0.40 * train_dataset_total
 print("Sample size: ", sample_size)
 
 training_data = []
 img_size = 224
 img_array = []
 
-
 def stratified_sample_size_for_class(
     stratum_size, train_dataset_total=train_dataset_total, sample_size=sample_size
 ):
-    return round(((sample_size / train_dataset_total) * stratum_size))
-
+    return ceil(((sample_size / train_dataset_total) * stratum_size))
 
 # Use this if memory is limited and you are getting sigkill errors
 def create_training_data_stratified_sample():
@@ -121,8 +128,6 @@ print("Total training data size: ", len(training_data))
 
 
 import random
-
-
 random.shuffle(training_data)
 
 
@@ -189,7 +194,6 @@ new_model = Model(
     inputs=input_layer,
     outputs=output_layer,
 )
-new_model._name = "serena-emotion-detector"
 new_model.summary()
 
 
@@ -213,6 +217,10 @@ new_model.compile(
 
 
 new_model.fit(X, Y, epochs=25)
+
+
+# In[ ]:
+
 
 new_model.save(model_save_path)
 
