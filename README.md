@@ -1,11 +1,14 @@
 # How to Train in Vertex AI
+
 ## Using `train.sh`
+
 1. Run `train.sh` in the root of this folder through the terminal
 2. Once it's finished, go to Vertex Ai Training menu in GCP Console and click on "CUSTOM JOBS" tab
 3. Your training job should be displayed as "serena-emotion-detector"
 4. Click on it to view its details
 
 ## Using Training Pipelin
+
 1. Develop your model in "/serena-emotion-detector/trainer/task.ipynb" notebook. DO NOT TRAIN IN THIS NOTEBOOK! Instead, when running cells containing the model.fit() line, only check if it runs (i.e. it outputs Epoch 1/10) and if it does, abort it.
 2. When you are done, run setup.sh
 3. Go to Vertex AI "Training" menu
@@ -28,7 +31,9 @@
 20. Your training job should show in the Vertex AI Training menu on that region. Click on the name and click "View logs" to see the training progress
 
 # How to Evaluate Model
+
 Since training won't be done in notebook due to the time it takes, evaluating can't happen in the same notebook. Instead, do these steps after training:
+
 1. Create a new notebook file, let's call it "evaluate.ipynb"
 2. Load your model artifacts in the notebook using function like `model.load(PATH_TO_ARTIFACT)`. Your artifact could be .h5/SavedModel/.keras, we use SavedModel (saved_model.pb) file here which is stored in GCS so replace your path to it in the GCS bucket.
 3. Import matplotlib, pandas, and any other evaluating libraries you need to run your evaluations
