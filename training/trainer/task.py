@@ -31,20 +31,19 @@
 
 # Run this `gcsfuse` cell if you are using Vertex AI workbench and can't list the folders inside of "/gcs"
 
-# In[43]:
-
-
-
-
 # In[1]:
+
+
+
+
+# In[2]:
 
 
 import os
 
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
-from tensorflow import keras
+from tensorflow import keras, data
 from keras import layers, Model
 from keras.applications import MobileNetV2
 from keras.callbacks import ModelCheckpoint
@@ -53,111 +52,120 @@ gcs_path = "/gcs/serena-shsw-datasets/"
 train_dataset_path = os.path.join(
     gcs_path, "FER-2013/train"  # TODO: change this to your own dataset
 )
+test_dataset_path = os.path.join(
+    gcs_path, "FER-2013/test"  # TODO: change this to your own dataset
+)
 model_save_path = os.path.join(
     gcs_path,
     "models/serena-emotion-detector.keras",  # TODO: change this to your own path
 )
+
 classes = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
 
 
 # ## Processing Training Data
 # 
 
-# Read 40% of the images from each folder, convert them into numpy array, then append them into `training_data`. We only read 40% of the images since we keep running into memory limit errors even when using `n1-highmem-32` VM + 2 `NVIDIA_TESLA_T4` accelerators. We think this is due reshaping each image to 224x224 which is pretty big. But even with 40% of the data, we could still get accuracy of more than 90% for the model.
+# img_size = 224img_size = 224img_size = 224Read 40% of the images from each folder, convert them into numpy array, then append them into `training_data`. We only read 40% of the images since we keep running into memory limit errors even when using `n1-highmem-32` VM + 2 `NVIDIA_TESLA_T4` accelerators. We think this is due reshaping each image to 224x224 which is pretty big. But even with 40% of the data, we could still get accuracy of around 94% for the model.
 # 
+
+# Load training & validation data
+
+# In[4]:
+
+
+# Kwargs for image_dataset_from_directory
+img_size = 224
+labels = "inferred"
+label_mode = "int"
+class_names = classes
+color_mode = "rgb"
+batch_size = 32 * 7
+image_size = (img_size, img_size)
+shuffle = True
+interpolation = "bilinear"
+follow_links = False
+
+
+def create_training_data():
+    training_data = keras.utils.image_dataset_from_directory(
+        directory=train_dataset_path,
+        labels=labels,
+        label_mode=label_mode,
+        class_names=class_names,
+        color_mode=color_mode,
+        batch_size=batch_size,
+        image_size=image_size,
+        shuffle=shuffle,
+        interpolation=interpolation,
+        follow_links=follow_links,
+        seed=123,
+    )
+
+    return training_data
+
+
+def create_validation_data():
+    validation_data = keras.utils.image_dataset_from_directory(
+        directory=test_dataset_path,
+        labels=labels,
+        label_mode=label_mode,
+        class_names=class_names,
+        color_mode=color_mode,
+        batch_size=batch_size,
+        image_size=image_size,
+        shuffle=shuffle,
+        interpolation=interpolation,
+        follow_links=follow_links,
+        seed=321,
+    )
+
+    return validation_data
+
 
 # In[5]:
 
 
-from math import ceil
-
-# There are 28709 images in the training set for FER-2013
-train_dataset_total = 28709
-sample_size = 0.40 * train_dataset_total
-print("Sample size: ", sample_size)
-
-training_data = []
-img_size = 224
-img_array = []
-
-def stratified_sample_size_for_class(
-    stratum_size, train_dataset_total=train_dataset_total, sample_size=sample_size
-):
-    return ceil(((sample_size / train_dataset_total) * stratum_size))
-
-# Use this if memory is limited and you are getting sigkill errors
-def create_training_data_stratified_sample():
-    for category in classes:
-        path = os.path.join(train_dataset_path, category)
-        class_num = classes.index(category)
-        stratum_size = len(os.listdir(path))
-        sample_size = stratified_sample_size_for_class(stratum_size)
-        print(
-            "Class: ",
-            category,
-            "Stratum size: ",
-            stratum_size,
-            "Sample size: ",
-            sample_size,
-        )
-        for img in os.listdir(path)[:sample_size]:
-            try:
-                img_array = cv2.imread(os.path.join(path, img))
-                new_array = cv2.resize(img_array, (img_size, img_size))
-                training_data.append([new_array, class_num])
-            except Exception as e:
-                pass
+training_data = create_training_data()
 
 
 # In[6]:
 
 
-create_training_data_stratified_sample()
+validation_data = create_validation_data()
 
 
 # In[7]:
 
 
-print("Total training data size: ", len(training_data))
+print(training_data.class_names)
+print(validation_data.class_names)
+print("Same order: ", training_data.class_names == validation_data.class_names)
 
 
-# Randomize the training data to avoid bias
-# 
+# Setup image loading strategy
 
 # In[8]:
 
 
-import random
-random.shuffle(training_data)
+AUTOTUNE = data.AUTOTUNE
+
+training_data = training_data.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+validation_data = validation_data.cache().prefetch(buffer_size=AUTOTUNE)
 
 
-# Reshape training data to fit our model
-# 
+# Normalize dataset to range 0-1
 
 # In[9]:
 
 
-X = []
-y = []
+normalization_layer = layers.Rescaling(1./255)
 
-for features, label in training_data:
-    X.append(features)
-    y.append(label)
+normalized_training_data = training_data.map(lambda x, y: (normalization_layer(x), y))
+image_batch, labels_batch = next(iter(normalized_training_data))
+first_image = image_batch[0]
 
-X = np.array(X).reshape(-1, img_size, img_size, 3)
-Y = np.array(y)
-
-print(X.shape)
-print(Y.shape)
-
-
-# Normalize the data
-# 
-
-# In[10]:
-
-
-X = X / 255.0
+print("min: ",np.min(first_image), "max: ",np.max(first_image))
 
 
 # ## Creating Transfer Learning Model
@@ -166,7 +174,7 @@ X = X / 255.0
 # Create pretrained model from `MobileNetV2`.
 # 
 
-# In[11]:
+# In[10]:
 
 
 pretrained_model = MobileNetV2()
@@ -176,7 +184,7 @@ pretrained_model.summary()
 # Create new layers from the pretrained model.
 # 
 
-# In[12]:
+# In[11]:
 
 
 input_layer = pretrained_model.layers[0].input
@@ -197,13 +205,15 @@ new_model = Model(
 new_model.summary()
 
 
-# In[13]:
+# In[12]:
 
 
 new_model.compile(
     loss="sparse_categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
 )
 
+
+# ## Train Model
 
 # Start training the model and saving the best model.
 # 
@@ -216,11 +226,52 @@ new_model.compile(
 # In[ ]:
 
 
-new_model.fit(X, Y, epochs=25)
+history = new_model.fit(normalized_training_data, validation_data=validation_data, epochs=2)
 
 
 # In[ ]:
 
 
 new_model.save(model_save_path)
+print("Saved model to: " + model_save_path)
+
+
+# ## Evaluate Training Results
+# 
+
+# In[ ]:
+
+
+import matplotlib.pyplot as plt
+# Mendapatkan data pelatihan (training) dari history
+training_loss = history.history['loss']
+training_accuracy = history.history['accuracy']
+
+# Membuat grafik untuk loss
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+plt.plot(training_loss, label='Training Loss')
+plt.title('Training Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+
+# Membuat grafik untuk accuracy
+plt.subplot(1, 2, 2)
+plt.plot(training_accuracy, label='Training Accuracy', color='orange')
+plt.title('Training Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+
+# Menampilkan grafik
+plt.tight_layout()
+plt.savefig(fname=gcs_path + "plots/serena-emotion-detector.png")
+plt.show()
+
+
+# In[ ]:
+
+
+
 
