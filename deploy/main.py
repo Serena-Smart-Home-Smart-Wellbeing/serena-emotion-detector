@@ -59,6 +59,7 @@ def index():
     if request.method == "POST":
         file = request.files.get("file")
         if file is None or file.filename == "":
+            print("No file uploaded.")
             return jsonify({"message": "Missing image", "status": 400})
 
         try:
@@ -69,6 +70,7 @@ def index():
             prediction = predict(processed_image)
             return prediction
         except Exception as e:
+            print(e)
             return jsonify({"message": str(e), "status": 500})
 
     return "OK"
