@@ -20,7 +20,7 @@ img_size = 224
 
 def preprocess_image(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    faces = faceCascade.detectMultiScale(gray, 1.1, 9)
+    faces = faceCascade.detectMultiScale(gray, 1.1, 4)
 
     for x, y, w, h in faces:
         roi_gray = gray[y : y + h, x : x + w]
