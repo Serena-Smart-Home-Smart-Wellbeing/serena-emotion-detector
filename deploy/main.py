@@ -11,7 +11,7 @@ model = keras.models.load_model(
     os.path.join(".", "model", "serena-emotion-detector.keras")
 )
 faceCascade = cv2.CascadeClassifier(
-    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    cv2.data.haarcascades + "haarcascade_frontalface_alt.xml"
 )
 
 classes = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
