@@ -19,7 +19,14 @@ After learning from our mistakes, learning more about CNN, and learning from tut
 The model we use for transfer learning is [MobileNetV2](https://www.ict-srilanka.com/blog/what-is-mobilenetv2). We use MobileNetV2 since it is designed to be lightweight for devices with limited resources (e.g. mobile phones, IoT devices, etc). We think this would make predictions quicker when deployed on Cloud Run or later in the future when we want to embed it directly into our IoT device `SerenBox`.
 
 We were able to get 94% accuracy with our model:
+
 ![Graph Loss and Accuracy](training/trainer/plots_serena-emotion-detector-eval.png)
+
+The graph above shows the movement of Loss and Accuracy from the train data and test data produced at each epoch. Based on this graph, the blue line shows the movement of the data train. Meanwhile, the red line shows movement for test data.
+
+In the graph on the left, the loss value from the train data decreased until the 25th epoch and the loss value from the test data initially increased. During the iteration, the loss value for the test data fluctuated, but at the 25th epoch, it decreased.
+
+The graph on the right shows that the accuracy value for the data train increases until the 25th epoch, which shows that the model that has been created is good. Meanwhile, the test data experienced fluctuations.
 
 ## How to Train in Vertex AI
 
