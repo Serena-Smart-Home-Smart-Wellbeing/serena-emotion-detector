@@ -53,10 +53,10 @@ steps:
               "--region=$_DEPLOY_REGION",
               "--quiet",
               "--max-instances=1",
-              "--min-instances=0",
+              "--min-instances=1",
               "--service-account=serena-backend@serena-777.iam.gserviceaccount.com",
               "--allow-unauthenticated",
-              "--memory=1Gi",
+              "--memory=2Gi",
               "--cpu=1"
           ]
       dir: "./deploy"
