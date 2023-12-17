@@ -69,39 +69,9 @@ curl -X POST -F "file=@$image" https://serena-emotion-detector-2g6tjw7nja-et.a.r
 
 ## Contribution Each Member
 
-Most of the tasks for Machine Learning we done together. The following are tasks performed by each Machine Learning member.
 
-(ML) M444BSY0588 – Akhmad Ikmal Zulfa 
-•	Split the dataset into train data and test data
-•	Data preprocessing
-•	Data analysis
-•	Create a CNN model
-•	Creating a CNN model with transfer learning
-•	Training models
-•	Make the model more accurate
-•	Create loss and accuracy graphs
-•	Testing the model
-•	Model prediction
-•	Create documentation
-
-(ML) M444BSX1534 – Nisrina Qurratu Aini 
-•	Searching for datasets
-•	Data preprocessing
-•	Create a CNN model
-•	Creating a CNN model with transfer learning
-•	Training models
-•	Make the model more accurate
-•	Create loss and accuracy graphs
-•	Search images for model predictions
-•	Model prediction
-•	Create documentation
-
-(ML) M444BSY1525 – Muhammad Ahya Fajri Firmansyah
-•	Data preprocessing
-•	Create a CNN model
-•	Creating a CNN model with transfer learning
-•	Training models
-•	Make the model more accurate
-•	Create loss and accuracy graphs
-•	Model prediction
-•	Create documentation
+|              Nama              |    Student ID    |                                                                                                                  Contribution                                                                                                                  |
+|:------------------------------:|:----------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|      Nisrina Qurratu Aini      | (ML) M444BSX1534 | Collect datasets Preprocessing Data,   Create Models, Create Models with Transfer Learning,  Train Models,  Make models more accurate,  Create loss and accuracy graphs,  predict models,  Search for images for predict models, Documentation |
+|       Akhmad Ikmal Zulfa       | (ML) M444BSY0588 | Split Data,  Preprocessing Data,  Analyze Data,  Create Models, Create Models with Transfer Learning,  Train Models,  Make models more accurate,  Create loss and accuracy graphs,  test models, predict models,  Documentation                |
+| Muhammad Ahya Fajri Firmansyah | (ML) M444BSY1525 | Preprocessing Data,  Create Models, Create Models with Transfer Learning,  Train Models,  Make models more accurate,   predict models,  Search for images for predict models, Documentation                                                    |
