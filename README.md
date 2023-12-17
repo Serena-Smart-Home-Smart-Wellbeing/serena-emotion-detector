@@ -7,6 +7,7 @@
   - [How to Evaluate Model](#how-to-evaluate-model)
   - [Running Local Flask Server](#running-local-flask-server)
   - [Production Server](#production-server)
+  - [Each Member Contribution](#each-member-contribution)
 
 ## Background
 
@@ -67,10 +68,9 @@ You can use our public endpoint [https://serena-emotion-detector-2g6tjw7nja-et.a
 curl -X POST -F "file=@$image" https://serena-emotion-detector-2g6tjw7nja-et.a.run.app/predict
 ```
 
-## Contribution Each Member
+## Each Member Contribution
 
-
-|              Nama              |    Student ID    |                                                                                                                  Contribution                                                                                                                  |
+|              Name              |    Student ID    |                                                                                                                  Contribution                                                                                                                  |
 |:------------------------------:|:----------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 |      Nisrina Qurratu Aini      | (ML) M444BSX1534 | Collect datasets Preprocessing Data,   Create Models, Create Models with Transfer Learning,  Train Models,  Make models more accurate,  Create loss and accuracy graphs,  predict models,  Search for images for predict models, Documentation |
 |       Akhmad Ikmal Zulfa       | (ML) M444BSY0588 | Split Data,  Preprocessing Data,  Analyze Data,  Create Models, Create Models with Transfer Learning,  Train Models,  Make models more accurate,  Create loss and accuracy graphs,  test models, predict models,  Documentation                |
