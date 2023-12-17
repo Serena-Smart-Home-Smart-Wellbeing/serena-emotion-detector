@@ -66,3 +66,42 @@ You can use our public endpoint [https://serena-emotion-detector-2g6tjw7nja-et.a
 ```bash
 curl -X POST -F "file=@$image" https://serena-emotion-detector-2g6tjw7nja-et.a.run.app/predict
 ```
+
+## Contribution Each Member
+
+Most of the tasks for Machine Learning we done together. The following are tasks performed by each Machine Learning member.
+
+(ML) M444BSY0588 – Akhmad Ikmal Zulfa 
+•	Split the dataset into train data and test data
+•	Data preprocessing
+•	Data analysis
+•	Create a CNN model
+•	Creating a CNN model with transfer learning
+•	Training models
+•	Make the model more accurate
+•	Create loss and accuracy graphs
+•	Testing the model
+•	Model prediction
+•	Create documentation
+
+(ML) M444BSX1534 – Nisrina Qurratu Aini 
+•	Searching for datasets
+•	Data preprocessing
+•	Create a CNN model
+•	Creating a CNN model with transfer learning
+•	Training models
+•	Make the model more accurate
+•	Create loss and accuracy graphs
+•	Search images for model predictions
+•	Model prediction
+•	Create documentation
+
+(ML) M444BSY1525 – Muhammad Ahya Fajri Firmansyah
+•	Data preprocessing
+•	Create a CNN model
+•	Creating a CNN model with transfer learning
+•	Training models
+•	Make the model more accurate
+•	Create loss and accuracy graphs
+•	Model prediction
+•	Create documentation
