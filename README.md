@@ -62,10 +62,10 @@ The `/deploy` folder contains code to run Flask server that hosts this model. Yo
 ## Production Server
 
 We use Cloud Build for CI/CD so that whenever we push to `main` branch, it's going to deploy on Cloud Run. The steps to deploy it is contained in [cloudbuild.yaml](deploy/cloudbuild.yaml) and [Dockerfile](deploy/Dockerfile).
-You can use our public endpoint [https://serena-emotion-detector-2g6tjw7nja-et.a.run.app](https://serena-emotion-detector-7q3q3q3q3q-uc.a.run.app/) through our [API Docs](https://serena-backend-2g6tjw7nja-et.a.run.app/api-docs/#/User%20Emotions/handleCallSerenaEmotionDetector) or by sending a POST request as described in [test.sh](deploy/test.sh):
+You can use our public endpoint [https://serena-emotion-detector-2g6tjw7nja-et.a.run.app](https://serena-emotion-detector-2g6tjw7nja-et.a.run.app) through our [API Docs](https://serena-backend-2g6tjw7nja-et.a.run.app/api-docs/#/User%20Emotions/handleCallSerenaEmotionDetector) or by sending a POST request as described in [test.sh](deploy/test.sh):
 
 ```bash
-curl -X POST -F "file=@$image" https://serena-emotion-detector-2g6tjw7nja-et.a.run.app/predict
+curl -X POST -F "file=@$image" https://serena-emotion-detector-2g6tjw7nja-et.a.run.app
 ```
 
 ## Each Member Contribution
