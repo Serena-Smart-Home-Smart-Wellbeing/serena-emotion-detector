@@ -7,7 +7,7 @@
   - [How to Evaluate Model](#how-to-evaluate-model)
   - [Running Local Flask Server](#running-local-flask-server)
   - [Production Server](#production-server)
-  - [Members ContributionsU](#members-contributionsu)
+  - [Members Contributions](#members-contributions)
 
 ## Background
 
@@ -71,7 +71,7 @@ You can use our public endpoint [https://serena-emotion-detector-2g6tjw7nja-et.a
 curl -X POST -F "file=@$image" https://serena-emotion-detector-2g6tjw7nja-et.a.run.app
 ```
 
-## Members ContributionsU
+## Members Contributions
 
 |              Name              |    Student ID    |                                                                                                                  Contribution                                                                                                                  |
 |------------------------------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
