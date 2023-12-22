@@ -11,7 +11,10 @@
 
 ## Background
 
-Serena Emotion Detector is a CNN model that detects 7 emotions (`angry`, `disgust`, `fear`, `happy`, `neutral`, `sad`, `surprise`) from a person's front-facing photo. We use [FER2013](https://www.kaggle.com/deadskull7/fer2013) dataset since it is a popular dataset for emotion detection.
+Serena Emotion Detector is a CNN model that detects 7 emotions (`angry`, `disgust`, `fear`, `happy`, `neutral`, `sad`, `surprise`) from a person's face photo.
+For our implementation, we group those 7 emotions into 2 groups: energetic (which consists of `angry`, `fear`, `surprise`)
+and relax (which consists of `disgust`, `happy`, `neutral`, `sad`) based on how they affect heart rate; energetic emotions increase heart rate while relax emotions decrease heart rate.
+We use [FER2013](https://www.kaggle.com/deadskull7/fer2013) dataset since it is a popular dataset for emotion detection.
 
 When we were starting with creating our model, we used to create the architecture from scratch. But after multiple trial and errors, the best we could get was around 64% accuracy. Even then, that took about 3 hours for every 10 epoch training session in Vertex AI. Other than that, our own models always faced problems where it would classify wrong emotions or would just be biased towards one emotion class.
 
@@ -71,7 +74,7 @@ curl -X POST -F "file=@$image" https://serena-emotion-detector-2g6tjw7nja-et.a.r
 ## Each Member Contribution
 
 |              Name              |    Student ID    |                                                                                                                  Contribution                                                                                                                  |
-|:------------------------------:|:----------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|------------------------------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 |      Nisrina Qurratu Aini      | (ML) M444BSX1534 | Collect datasets Preprocessing Data,   Create Models, Create Models with Transfer Learning,  Train Models,  Make models more accurate,  Create loss and accuracy graphs,  predict models,  Search for images for predict models, Documentation |
 |       Akhmad Ikmal Zulfa       | (ML) M444BSY0588 | Split Data,  Preprocessing Data,  Analyze Data,  Create Models, Create Models with Transfer Learning,  Train Models,  Make models more accurate,  Create loss and accuracy graphs,  test models, predict models,  Documentation                |
 | Muhammad Ahya Fajri Firmansyah | (ML) M444BSY1525 | Preprocessing Data,  Create Models, Create Models with Transfer Learning,  Train Models,  Make models more accurate,   predict models,  Search for images for predict models, Documentation                                                    |
